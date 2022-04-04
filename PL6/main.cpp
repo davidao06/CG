@@ -26,6 +26,8 @@ std::vector<float> vertices;
 
 GLuint buffers;
 
+float angleCowboy = 0,angleIndio = 0;
+
 unsigned int t, tw, th;
 unsigned char *imageData;
 
@@ -53,9 +55,45 @@ void changeSize(int w, int h) {
 	glMatrixMode(GL_MODELVIEW);
 }
 
+void drawCowboys(int nrCowboys) {
+	float angulo = 0;
+	float anguloTurn = -90;
+	for (float i = 0; i < nrCowboys; i++) {
+		glPushMatrix();
+		angulo = i * ((2 * M_PI)/ nrCowboys);
+		float x = sin(angulo) * 15;
+		float z = cos(angulo) * 15;
+		glTranslatef(x,1.5,z);
+		glColor3f(0,0,1);
+		glRotatef(anguloTurn,0,1,0);
+		anguloTurn += 360/(float) nrCowboys;
+		glutSolidTeapot(1.5);
+		glPopMatrix();
+	}
+}
 
-float height(int i,int j) {
-	return imageData[th * i + j];
+void drawIndios(int nrIndios) {
+	float angulo = 0;
+	float anguloTurn = 0;
+	for (float i = 0; i < nrIndios; i++) {
+		angulo = i *((2 * M_PI)/ nrIndios);
+		glPushMatrix();
+		float x = sin(angulo) * 35;
+		float z = cos(angulo) * 35;
+		glTranslatef(x,1.7,z);
+		glColor3f(1,0,0);
+		glRotatef(anguloTurn,0,1,0);
+		anguloTurn += 360/(float) nrIndios;
+		glutSolidTeapot(1.5);
+		glPopMatrix();
+	}
+}
+
+float height(int x,int z) {
+	int i =  x + 127.5;
+	int j = z + 127.5;
+	float res = (imageData[th * j + i]/255.f) * 100;
+	return res;
 }
 
 void drawTerrain() {
@@ -63,28 +101,39 @@ void drawTerrain() {
 	glBindBuffer(GL_ARRAY_BUFFER, buffers);
 
     // colocar aqui o código de desnho do terreno usando VBOs com TRIANGLE_STRIPS
-	int i = 0;
 	for (float z = -127.5;z < 127.5;z++) {
-		int j = 0;
 		for (float x = -127.5;x <= 127.5;x++) {
-			float h1 = (height(i,j)/255) * 100;
-			float h2 = (height(i,j+1)/255) * 100;
+			float h1 = height(x,z);
+			float h2 = height(x,z+1);
 			vertices.push_back(x);
 			vertices.push_back(h1);
 			vertices.push_back(z);
 
 			vertices.push_back(x);
 			vertices.push_back(h2);
-			vertices.push_back(z+1);
-
-			j++;			
+			vertices.push_back(z+1);			
 		}
-		i++;
 	}
 
 	glBufferData(GL_ARRAY_BUFFER,sizeof(float) * vertices.size(),vertices.data(),GL_STATIC_DRAW);
 }
 
+void drawTree (float x,float z) {
+	glPushMatrix();
+	glTranslatef(x,height(x,z) - 1,z);	
+	glColor3f(0.4f,0.2,0);
+	glPushMatrix();
+	glRotatef(-90,1,0,0);
+	glutSolidCone(1,5,4,2);
+	glPopMatrix();
+	glTranslatef(0,2,0);
+	float greenR = (rand()/(float) RAND_MAX) * 0.2;
+	float blueR = (rand()/(float) RAND_MAX) * 0.2;
+	glColor3f(0,0.6 + greenR,blueR);
+	glRotatef(-90,1,0,0);
+	glutSolidCone(2,10,4,2);
+	glPopMatrix();
+}
 
 
 void renderScene(void) {
@@ -99,12 +148,40 @@ void renderScene(void) {
 		      0.0,0.0,0.0,
 			  0.0f,1.0f,0.0f);
 
-	glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+	glColor3f(0.1,0.9,0.2);
 	glBindBuffer(GL_ARRAY_BUFFER, buffers);
 	glVertexPointer(3, GL_FLOAT, 0, 0);
 	for (int i = 0; i < th - 1; i++) {
 		glDrawArrays(GL_TRIANGLE_STRIP, tw * 2 * i, tw * 2);
 	}
+
+	srand(2022);
+	for (int i = 0; i < 300;) {
+		float x = ((rand() / (float) RAND_MAX) * 254) - 127;
+		float z = ((rand() / (float) RAND_MAX) * 254) - 127;
+		if (pow(x,2) + pow(z,2) > pow(50,2)) {
+			drawTree(x,z);
+			i++;
+		}
+	}
+
+	glColor3f(1,0.6,0.6);
+	glPushMatrix();
+	glTranslatef(0,0.8,0);
+	glutSolidTorus(2,4,64,64);
+	glPopMatrix();
+
+	glPushMatrix();
+	glRotatef(angleCowboy,0,1,0);
+	angleCowboy -= 1;
+	drawCowboys(8);
+	glPopMatrix();
+
+	glPushMatrix();
+	glRotatef(angleIndio,0,1,0);
+	angleIndio += 1;
+	drawIndios(16);
+	glPopMatrix();
 
 // End of frame
 	glutSwapBuffers();
