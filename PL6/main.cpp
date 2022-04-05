@@ -17,10 +17,13 @@
 #endif
 
 
-float camX = 40, camY = 100, camZ = 100;
+float camX = 0, camY = 0, camZ = 0;
 int startX, startY, tracking = 0;
-
+float alturaPerson = 1.85f;
 int alpha = 0, beta = 45, r = 50;
+float angle = 0;
+int vertical = 0,horizontal = 0;
+float px = 0,py = 0,pz = 0;
 
 std::vector<float> vertices;
 
@@ -89,10 +92,18 @@ void drawIndios(int nrIndios) {
 	}
 }
 
-float height(int x,int z) {
-	int i =  x + 127.5;
-	int j = z + 127.5;
-	float res = (imageData[th * j + i]/255.f) * 100;
+float height(float x,float z) {
+	float res;
+	float x1 = floor(x);
+	float z1 = floor(z);
+	float fx = x - x1;
+	float fz = z - z1;
+	int i =  x1 + 127.5;
+	int j = z1 + 127.5;
+	float h_x1_z = (imageData[th * j + i]) * (1 - fz) + (imageData[th * (j+1) + i]) * fz;
+	float h_x2_z = (imageData[th * j + (i+1)]) * (1 - fz) + (imageData[th * (j+1) + i+1]) * fz;
+
+	res = h_x1_z * (1-fx) + h_x2_z * fx;
 	return res;
 }
 
@@ -100,7 +111,7 @@ void drawTerrain() {
 
 	glBindBuffer(GL_ARRAY_BUFFER, buffers);
 
-    // colocar aqui o código de desnho do terreno usando VBOs com TRIANGLE_STRIPS
+    // colocar aqui o código de desenho do terreno usando VBOs com TRIANGLE_STRIPS
 	for (float z = -127.5;z < 127.5;z++) {
 		for (float x = -127.5;x <= 127.5;x++) {
 			float h1 = height(x,z);
@@ -120,7 +131,7 @@ void drawTerrain() {
 
 void drawTree (float x,float z) {
 	glPushMatrix();
-	glTranslatef(x,height(x,z) - 1,z);	
+	glTranslatef(x,height(x,z) - 0.2,z);	
 	glColor3f(0.4f,0.2,0);
 	glPushMatrix();
 	glRotatef(-90,1,0,0);
@@ -142,23 +153,25 @@ void renderScene(void) {
 
 	glClearColor(0.0f,0.0f,0.0f,0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	py = alturaPerson + height(px,pz);
 	glLoadIdentity();
-	gluLookAt(camX, camY, camZ, 
-		      0.0,0.0,0.0,
+	gluLookAt(px, py, pz, 
+		      px + sin(angle * 3.14 / 180.0),py,pz + cos(angle * 3.14 / 180.0),
 			  0.0f,1.0f,0.0f);
 
-	glColor3f(0.1,0.9,0.2);
+	glColor3f(1,1,1);
+	glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 	glBindBuffer(GL_ARRAY_BUFFER, buffers);
 	glVertexPointer(3, GL_FLOAT, 0, 0);
 	for (int i = 0; i < th - 1; i++) {
 		glDrawArrays(GL_TRIANGLE_STRIP, tw * 2 * i, tw * 2);
 	}
 
-	srand(2022);
+	glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+	srand(2021);
 	for (int i = 0; i < 300;) {
-		float x = ((rand() / (float) RAND_MAX) * 254) - 127;
-		float z = ((rand() / (float) RAND_MAX) * 254) - 127;
+		float x = ((rand() / (float) RAND_MAX) * 255) - 127.5;
+		float z = ((rand() / (float) RAND_MAX) * 255) - 127.5;
 		if (pow(x,2) + pow(z,2) > pow(50,2)) {
 			drawTree(x,z);
 			i++;
@@ -187,14 +200,42 @@ void renderScene(void) {
 	glutSwapBuffers();
 }
 
+void processSpecialKeys(int key,int xx,int yy) {
+	if (key == GLUT_KEY_RIGHT) {
+		angle-= 2;
+	}
 
+	if (key == GLUT_KEY_LEFT) {
+		angle+= 2;
+	}
+
+	glutPostRedisplay();
+}
 
 void processKeys(unsigned char key, int xx, int yy) {
 
-// put code to process regular keys in here
+	if (key == 87 || key == 119) {
+		px = px + 1 * sin(angle * 3.14 / 180.0);
+		pz = pz + 1 * cos(angle * 3.14 / 180.0);
+	}
+
+	if (key == 83 || key == 115) {
+		px = px - 1 * sin(angle * 3.14 / 180.0);
+		pz = pz - 1 * cos(angle * 3.14 / 180.0);
+	}
+
+	if (key == 68 || key == 100) {
+		px = px - sin((angle+90) * 3.14 / 180.0);
+		pz = pz - cos((angle+90) * 3.14 / 180.0);
+	}
+	
+	if (key == 65 || key == 97) {
+		px = px + sin((angle+90) * 3.14 / 180.0);
+		pz = pz + cos((angle+90) * 3.14 / 180.0);
+	}
+
+	glutPostRedisplay();
 }
-
-
 
 void processMouseButtons(int button, int state, int xx, int yy) {
 	
@@ -309,9 +350,11 @@ int main(int argc, char **argv) {
 	glutDisplayFunc(renderScene);
 	glutIdleFunc(renderScene);
 	glutReshapeFunc(changeSize);
+	
 
 // Callback registration for keyboard processing
 	glutKeyboardFunc(processKeys);
+	glutSpecialFunc(processSpecialKeys);
 	glutMouseFunc(processMouseButtons);
 	glutMotionFunc(processMouseMotion);
 
