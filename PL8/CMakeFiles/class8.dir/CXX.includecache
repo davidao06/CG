@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/davidpalves/Desktop/Universidade/3ano2sem/CG/PL8/catmull-rom.cpp
+stdlib.h
+-
+math.h
+-
+iostream
+-
+GLUT/glut.h
+-
+GL/glut.h
+-
+
